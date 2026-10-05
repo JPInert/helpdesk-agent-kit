@@ -1,0 +1,46 @@
+{
+  "ticket": {
+    "id": 1011,
+    "subject": "Charge on my account",
+    "description": "I was charged for Office Suite last month but I don't use it. Can that come off?",
+    "requester_id": 3,
+    "status": "open",
+    "created_at": "2026-10-05T10:05:00Z",
+    "via": {
+      "channel": "email"
+    },
+    "tags": []
+  },
+  "users": [
+    {
+      "id": 3,
+      "name": "Marcus Bell",
+      "email": "marcus.bell@example-corp.test"
+    },
+    {
+      "id": 9,
+      "name": "Help Desk Agent",
+      "email": "helpdesk@example-corp.test"
+    }
+  ],
+  "comments": [
+    {
+      "id": 10110,
+      "author_id": 3,
+      "public": true,
+      "body": "I was charged for Office Suite last month but I don't use it. Can that come off?",
+      "html_body": "<p>I was charged for Office Suite last month but I don't use it. Can that come off?</p>",
+      "plain_body": "I was charged for Office Suite last month but I don't use it. Can that come off?",
+      "attachments": []
+    },
+    {
+      "id": 10111,
+      "author_id": 9,
+      "public": false,
+      "body": "Checking with billing.",
+      "html_body": "<p>Checking with billing.</p>",
+      "plain_body": "Checking with billing.",
+      "attachments": []
+    }
+  ]
+}

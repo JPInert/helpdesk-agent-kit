@@ -1,0 +1,32 @@
+{
+  "ticket": {
+    "id": 1010,
+    "subject": "Office Suite never showed up",
+    "description": "Hi there, I requested Office Suite this morning and it still isn't on my laptop. Can someone check??",
+    "requester_id": 8,
+    "status": "open",
+    "created_at": "2026-10-05T09:06:00Z",
+    "via": {
+      "channel": "email"
+    },
+    "tags": []
+  },
+  "users": [
+    {
+      "id": 8,
+      "name": "Priya Raman",
+      "email": "priya.raman@example-crop.test"
+    }
+  ],
+  "comments": [
+    {
+      "id": 10100,
+      "author_id": 8,
+      "public": true,
+      "body": "Hi there, I requested Office Suite this morning and it still isn't on my laptop. Can someone check??",
+      "html_body": "<p>Hi there, I requested Office Suite this morning and it still isn't on my laptop. Can someone check??</p>",
+      "plain_body": "Hi there, I requested Office Suite this morning and it still isn't on my laptop. Can someone check??",
+      "attachments": []
+    }
+  ]
+}

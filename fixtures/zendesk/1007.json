@@ -1,0 +1,32 @@
+{
+  "ticket": {
+    "id": 1007,
+    "subject": "MFA on personal phone",
+    "description": "Quick one: do I still need MFA on my personal phone now that I have a work laptop?",
+    "requester_id": 1,
+    "status": "open",
+    "created_at": "2026-10-05T09:50:00Z",
+    "via": {
+      "channel": "email"
+    },
+    "tags": []
+  },
+  "users": [
+    {
+      "id": 1,
+      "name": "Priya Raman",
+      "email": "priya.raman@example-corp.test"
+    }
+  ],
+  "comments": [
+    {
+      "id": 10070,
+      "author_id": 1,
+      "public": true,
+      "body": "Quick one: do I still need MFA on my personal phone now that I have a work laptop?",
+      "html_body": "<p>Quick one: do I still need MFA on my personal phone now that I have a work laptop?</p>",
+      "plain_body": "Quick one: do I still need MFA on my personal phone now that I have a work laptop?",
+      "attachments": []
+    }
+  ]
+}

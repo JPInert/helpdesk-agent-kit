@@ -1,0 +1,48 @@
+{
+  "ticket": {
+    "id": 1004,
+    "subject": "Conversation with Lena Ortiz",
+    "description": "Conversation with Web User",
+    "requester_id": 4,
+    "status": "open",
+    "created_at": "2026-10-05T09:31:00Z",
+    "via": {
+      "channel": "native_messaging"
+    },
+    "tags": []
+  },
+  "users": [
+    {
+      "id": 4,
+      "name": "Lena Ortiz",
+      "email": "lena.ortiz@example-corp.test"
+    }
+  ],
+  "comments": [
+    {
+      "id": 10041,
+      "author_id": 4,
+      "public": true,
+      "body": "I can't get into anything since this morning",
+      "html_body": "<p>I can't get into anything since this morning</p>",
+      "plain_body": "I can't get into anything since this morning",
+      "attachments": []
+    },
+    {
+      "id": 10042,
+      "author_id": 4,
+      "public": true,
+      "body": "uploaded: signin-error.png",
+      "html_body": "<p>uploaded: signin-error.png</p>",
+      "plain_body": "uploaded: signin-error.png",
+      "attachments": [
+        {
+          "content_url": "fixture://screenshots/signin-error.png",
+          "content_type": "image/png",
+          "file_name": "signin-error.png",
+          "inline": false
+        }
+      ]
+    }
+  ]
+}

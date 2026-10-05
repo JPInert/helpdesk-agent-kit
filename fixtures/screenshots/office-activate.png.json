@@ -1,0 +1,8 @@
+{
+  "screen": "Office Suite activation prompt",
+  "error_text": "'Sign in to activate Office Suite.'",
+  "username": null,
+  "record_id": null,
+  "status": null,
+  "observations": "Activation dialog asking the user to sign in. No license error was visible."
+}

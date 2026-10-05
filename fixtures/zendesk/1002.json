@@ -1,0 +1,32 @@
+{
+  "ticket": {
+    "id": 1002,
+    "subject": "Access for Dana",
+    "description": "Hi there, Dana Whitfield still can't open the Finance Shared Drive. Her access request went in a couple of hours ago and she needs it for month end.",
+    "requester_id": 2,
+    "status": "open",
+    "created_at": "2026-10-05T09:10:00Z",
+    "via": {
+      "channel": "email"
+    },
+    "tags": []
+  },
+  "users": [
+    {
+      "id": 2,
+      "name": "Tom Hale",
+      "email": "tom.hale@example-corp.test"
+    }
+  ],
+  "comments": [
+    {
+      "id": 10020,
+      "author_id": 2,
+      "public": true,
+      "body": "Hi there, Dana Whitfield still can't open the Finance Shared Drive. Her access request went in a couple of hours ago and she needs it for month end.",
+      "html_body": "<p>Hi there, Dana Whitfield still can't open the Finance Shared Drive. Her access request went in a couple of hours ago and she needs it for month end.</p>",
+      "plain_body": "Hi there, Dana Whitfield still can't open the Finance Shared Drive. Her access request went in a couple of hours ago and she needs it for month end.",
+      "attachments": []
+    }
+  ]
+}

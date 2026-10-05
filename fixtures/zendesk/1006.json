@@ -1,0 +1,32 @@
+{
+  "ticket": {
+    "id": 1006,
+    "subject": "VPN",
+    "description": "Please sort out access for DaWh, she is stuck on the VPN group again.",
+    "requester_id": 6,
+    "status": "open",
+    "created_at": "2026-10-05T09:45:00Z",
+    "via": {
+      "channel": "email"
+    },
+    "tags": []
+  },
+  "users": [
+    {
+      "id": 6,
+      "name": "Ana Ruiz",
+      "email": "ana.ruiz@example-corp.test"
+    }
+  ],
+  "comments": [
+    {
+      "id": 10060,
+      "author_id": 6,
+      "public": true,
+      "body": "Please sort out access for DaWh, she is stuck on the VPN group again.",
+      "html_body": "<p>Please sort out access for DaWh, she is stuck on the VPN group again.</p>",
+      "plain_body": "Please sort out access for DaWh, she is stuck on the VPN group again.",
+      "attachments": []
+    }
+  ]
+}

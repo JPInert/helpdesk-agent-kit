@@ -1,0 +1,32 @@
+{
+  "ticket": {
+    "id": 1003,
+    "subject": "Design Suite",
+    "description": "My Design Suite license request failed and I need it for a client deck today.",
+    "requester_id": 3,
+    "status": "open",
+    "created_at": "2026-10-05T09:20:00Z",
+    "via": {
+      "channel": "email"
+    },
+    "tags": []
+  },
+  "users": [
+    {
+      "id": 3,
+      "name": "Marcus Bell",
+      "email": "marcus.bell@example-corp.test"
+    }
+  ],
+  "comments": [
+    {
+      "id": 10030,
+      "author_id": 3,
+      "public": true,
+      "body": "My Design Suite license request failed and I need it for a client deck today.",
+      "html_body": "<p>My Design Suite license request failed and I need it for a client deck today.</p>",
+      "plain_body": "My Design Suite license request failed and I need it for a client deck today.",
+      "attachments": []
+    }
+  ]
+}

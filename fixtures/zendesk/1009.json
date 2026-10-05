@@ -1,0 +1,32 @@
+{
+  "ticket": {
+    "id": 1009,
+    "subject": "License question",
+    "description": "The 3rd floor printer is jammed again and showing a paper error.",
+    "requester_id": 3,
+    "status": "open",
+    "created_at": "2026-10-05T10:00:00Z",
+    "via": {
+      "channel": "email"
+    },
+    "tags": []
+  },
+  "users": [
+    {
+      "id": 3,
+      "name": "Marcus Bell",
+      "email": "marcus.bell@example-corp.test"
+    }
+  ],
+  "comments": [
+    {
+      "id": 10090,
+      "author_id": 3,
+      "public": true,
+      "body": "The 3rd floor printer is jammed again and showing a paper error.",
+      "html_body": "<p>The 3rd floor printer is jammed again and showing a paper error.</p>",
+      "plain_body": "The 3rd floor printer is jammed again and showing a paper error.",
+      "attachments": []
+    }
+  ]
+}

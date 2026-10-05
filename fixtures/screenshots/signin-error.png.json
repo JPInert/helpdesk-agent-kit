@@ -1,0 +1,8 @@
+{
+  "screen": "company sign-in page",
+  "error_text": "'Your account has been suspended. Contact your administrator.'",
+  "username": "lortiz",
+  "record_id": null,
+  "status": "suspended",
+  "observations": "Sign-in form with the email filled in. No password field was visible."
+}
