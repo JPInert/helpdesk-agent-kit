@@ -11,6 +11,8 @@ and each was found the hard way:
   in attachments[]. Checking attachments alone misses them.
 
 Triage reads the WHOLE thread, never just the first message, and never trusts the subject.
+Names, subjects and text are cleaned of invisible Unicode here (textclean.py), once, so
+every later stage compares clean strings.
 """
 
 from __future__ import annotations
@@ -21,6 +23,7 @@ import re
 from datetime import datetime
 
 from . import db
+from .textclean import clean_text
 
 MACHINE_SENDERS = ("noreply", "no-reply", "donotreply", "alerts", "monitoring")
 IMAGE_NAME = re.compile(r"\b[\w.-]+\.(?:png|jpe?g|gif|webp)\b", re.I)
@@ -81,20 +84,21 @@ def normalize(payload: dict, comments: list[dict]) -> dict:
     requester = users.get(ticket.get("requester_id"), {})
     thread = [{"author": users.get(c.get("author_id"), {}).get("name", "unknown"),
                "public": bool(c.get("public", True)),
-               "text": c.get("plain_body") or html_to_text(c.get("html_body") or c.get("body") or "")}
+               "text": clean_text(c.get("plain_body") or html_to_text(c.get("html_body") or c.get("body") or ""),
+                                  multiline=True)}
               for c in comments]
     channel = (ticket.get("via") or {}).get("channel", "")
     if channel == "native_messaging":
         # The description is a stub; the transcript is the real body.
         body = "\n".join(t["text"] for t in thread if t["text"])
     else:
-        body = ticket.get("description") or (thread[0]["text"] if thread else "")
+        body = clean_text(ticket.get("description"), multiline=True) or (thread[0]["text"] if thread else "")
     return {
         "id": str(ticket["id"]),
-        "subject": ticket.get("subject") or "",
+        "subject": clean_text(ticket.get("subject")),
         "body": body,
         "thread_json": db.dumps(thread),
-        "requester_name": requester.get("name", ""),
+        "requester_name": clean_text(requester.get("name", "")),
         "requester_email": (requester.get("email") or "").lower(),
         "channel": channel,
         "created_at": ticket.get("created_at") or "",

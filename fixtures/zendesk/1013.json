@@ -1,0 +1,32 @@
+{
+  "ticket": {
+    "id": 1013,
+    "subject": "Session rejected",
+    "description": "Hi there, my session from Friday was rejected. I only logged about 8 hours last week, well under the 10 hours a week I am approved for.",
+    "requester_id": 1,
+    "status": "open",
+    "created_at": "2026-10-05T10:12:00Z",
+    "via": {
+      "channel": "email"
+    },
+    "tags": []
+  },
+  "users": [
+    {
+      "id": 1,
+      "name": "Priya Raman",
+      "email": "priya.raman@example-corp.test"
+    }
+  ],
+  "comments": [
+    {
+      "id": 10130,
+      "author_id": 1,
+      "public": true,
+      "body": "Hi there, my session from Friday was rejected. I only logged about 8 hours last week, well under the 10 hours a week I am approved for.",
+      "html_body": "<p>Hi there, my session from Friday was rejected. I only logged about 8 hours last week, well under the 10 hours a week I am approved for.</p>",
+      "plain_body": "Hi there, my session from Friday was rejected. I only logged about 8 hours last week, well under the 10 hours a week I am approved for.",
+      "attachments": []
+    }
+  ]
+}

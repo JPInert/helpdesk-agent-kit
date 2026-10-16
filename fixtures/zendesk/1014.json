@@ -1,0 +1,32 @@
+{
+  "ticket": {
+    "id": 1014,
+    "subject": "Session rejected as over the limit",
+    "description": "Hi there, my session from Sunday was rejected as over the weekly limit. My approval says weeks start on Sunday, so it should count toward next week.",
+    "requester_id": 10,
+    "status": "open",
+    "created_at": "2026-10-05T10:14:00Z",
+    "via": {
+      "channel": "email"
+    },
+    "tags": []
+  },
+  "users": [
+    {
+      "id": 10,
+      "name": "Dana Whitfield",
+      "email": "dana.whitfield@example-corp.test"
+    }
+  ],
+  "comments": [
+    {
+      "id": 10140,
+      "author_id": 10,
+      "public": true,
+      "body": "Hi there, my session from Sunday was rejected as over the weekly limit. My approval says weeks start on Sunday, so it should count toward next week.",
+      "html_body": "<p>Hi there, my session from Sunday was rejected as over the weekly limit. My approval says weeks start on Sunday, so it should count toward next week.</p>",
+      "plain_body": "Hi there, my session from Sunday was rejected as over the weekly limit. My approval says weeks start on Sunday, so it should count toward next week.",
+      "attachments": []
+    }
+  ]
+}

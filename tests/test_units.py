@@ -11,7 +11,8 @@ import pytest
 from helpdesk_kit import db, ingest
 from helpdesk_kit.analyze import analyze
 from helpdesk_kit.classify import Classification, KeywordClassifier, TicketType, finalize, looks_abbreviated
-from helpdesk_kit.kb import AUTO_EXECUTE_MIN_SOLVED, load, should_auto_execute
+from helpdesk_kit.kb import AUTO_EXECUTE_MIN_SOLVED, load
+from helpdesk_kit.safety import should_auto_execute
 from helpdesk_kit.reply import ClaudeReviewer, LintReviewer, MissingEvidence, lint, render, scrub
 from helpdesk_kit.vision import strip_narrated_absences
 
@@ -186,11 +187,12 @@ def test_unknown_cc_role_is_rejected_at_load(tmp_path):
 
 def test_auto_execute_needs_opt_in_high_confidence_and_a_track_record(kb):
     rule = next(r for r in kb.rules if r.id == "license-stuck")
-    assert not should_auto_execute(rule, "HIGH", AUTO_EXECUTE_MIN_SOLVED - 1)
-    assert not should_auto_execute(rule, "MEDIUM", 99)
-    assert should_auto_execute(rule, "HIGH", AUTO_EXECUTE_MIN_SOLVED)
+    # v2: the gate is the single choke point in safety.py and also needs the diagnosis state
+    assert not should_auto_execute(rule, "HIGH", AUTO_EXECUTE_MIN_SOLVED - 1, state="job_stuck")
+    assert not should_auto_execute(rule, "MEDIUM", 99, state="job_stuck")
+    assert should_auto_execute(rule, "HIGH", AUTO_EXECUTE_MIN_SOLVED, state="job_stuck")
     seat_rule = next(r for r in kb.rules if r.id == "seat-pool-full")
-    assert not should_auto_execute(seat_rule, "HIGH", 99)
+    assert not should_auto_execute(seat_rule, "HIGH", 99, state="seat_pool_exhausted")
 
 
 def test_every_shipped_reply_passes_house_style(kb):

@@ -27,6 +27,8 @@ USERS = {
     7: ("Uptime Monitor", "alerts@monitoring.example-corp.test"),
     8: ("Priya Raman", "priya.raman@example-crop.test"),   # typo'd domain, same person
     9: ("Help Desk Agent", "helpdesk@example-corp.test"),
+    10: ("Dana Whitfield", "dana.whitfield@example-corp.test"),
+    11: ("Noor Haddad", "noor.haddad@example-corp.test"),
 }
 
 
@@ -44,11 +46,12 @@ def comment(cid: int, author: int, body: str, html_body: str | None = None,
 
 def ticket(tid: int, requester: int, subject: str, description: str, created: str,
            channel: str = "email", tags: list | None = None, comments: list | None = None,
-           extra_users: list | None = None) -> dict:
+           extra_users: list | None = None, priority: str | None = None) -> dict:
     return {
         "ticket": {"id": tid, "subject": subject, "description": description,
                    "requester_id": requester, "status": "open", "created_at": created,
-                   "via": {"channel": channel}, "tags": tags or []},
+                   "via": {"channel": channel}, "tags": tags or [],
+                   **({"priority": priority} if priority else {})},
         "users": [user(requester)] + [user(u) for u in extra_users or []],
         "comments": comments or [comment(tid * 10, requester, description)],
     }
@@ -97,6 +100,33 @@ TICKETS = [
                                        "Can that come off?"),
                      comment(10111, 9, "Checking with billing.", public=False)],
            extra_users=[9]),
+    # ---- v2: session records, several issues in one ticket, requests with nothing on file ---------
+    ticket(1012, 3, "Sessions rejected",
+           "Hi there, two of my elevated access sessions from last week were rejected and I can't tell why. "
+           "One was on the Build Server on Tuesday that I forgot to close out, the other on the Finance "
+           "Console on Wednesday.", "2026-10-05T10:10:00Z", priority="high"),
+    ticket(1013, 1, "Session rejected",
+           "Hi there, my session from Friday was rejected. I only logged about 8 hours last week, well "
+           "under the 10 hours a week I am approved for.", "2026-10-05T10:12:00Z"),
+    ticket(1014, 10, "Session rejected as over the limit",
+           "Hi there, my session from Sunday was rejected as over the weekly limit. My approval says weeks "
+           "start on Sunday, so it should count toward next week.", "2026-10-05T10:14:00Z"),
+    ticket(1015, 5, "Friday session rejected",
+           "Hi there, my session from Friday was rejected even though my approval runs through 2026-10-31.",
+           "2026-10-05T10:16:00Z", priority="urgent"),
+    ticket(1016, 2, "Kofi's sessions",
+           "Hi there, Kofi Mensah still has two rejected sessions from Thursday and the log will not say why.",
+           "2026-10-05T10:18:00Z"),
+    ticket(1017, 11, "Two problems",
+           "Hi there, two problems:\n1. My Office Suite license request from this morning is still not "
+           "showing up, it isn't on my laptop.\n2. My session from Monday was rejected and I can't see why.",
+           "2026-10-05T10:19:00Z"),
+    ticket(1018, 1, "Design Suite",
+           "Hi there, I requested a Design Suite license last week and it still has not shown up.",
+           "2026-10-05T10:20:00Z"),
+    ticket(1019, 3, "Finance drive",
+           "Hi there, I need access to the Finance Shared Drive for the audit but I am not sure anyone ever "
+           "filed the request.", "2026-10-05T10:22:00Z"),
 ]
 
 SCREENSHOTS = {

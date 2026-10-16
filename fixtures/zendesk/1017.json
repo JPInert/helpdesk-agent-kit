@@ -1,0 +1,32 @@
+{
+  "ticket": {
+    "id": 1017,
+    "subject": "Two problems",
+    "description": "Hi there, two problems:\n1. My Office Suite license request from this morning is still not showing up, it isn't on my laptop.\n2. My session from Monday was rejected and I can't see why.",
+    "requester_id": 11,
+    "status": "open",
+    "created_at": "2026-10-05T10:19:00Z",
+    "via": {
+      "channel": "email"
+    },
+    "tags": []
+  },
+  "users": [
+    {
+      "id": 11,
+      "name": "Noor Haddad",
+      "email": "noor.haddad@example-corp.test"
+    }
+  ],
+  "comments": [
+    {
+      "id": 10170,
+      "author_id": 11,
+      "public": true,
+      "body": "Hi there, two problems:\n1. My Office Suite license request from this morning is still not showing up, it isn't on my laptop.\n2. My session from Monday was rejected and I can't see why.",
+      "html_body": "<p>Hi there, two problems:\n1. My Office Suite license request from this morning is still not showing up, it isn't on my laptop.\n2. My session from Monday was rejected and I can't see why.</p>",
+      "plain_body": "Hi there, two problems:\n1. My Office Suite license request from this morning is still not showing up, it isn't on my laptop.\n2. My session from Monday was rejected and I can't see why.",
+      "attachments": []
+    }
+  ]
+}

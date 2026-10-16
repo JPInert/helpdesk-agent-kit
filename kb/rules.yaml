@@ -9,6 +9,7 @@ contacts:
   hardware-vendor: support@hardware-vendor.test
   billing: billing@example-corp.test
   policy-owner: it-policy@example-corp.test
+  access-team: access-team@example-corp.test
   manager: from_portal            # the affected person's manager, read from their account
 
 rules:
@@ -173,6 +174,88 @@ rules:
 
       Good question. I am passing this to the team that owns that policy so you get a definite
       answer rather than a guess. They will reply on this ticket.
+
+  # ---- session records: why an elevated-access session was rejected -----------------------------
+  # States come from helpdesk_kit/diagnose.py. There is deliberately NO rule here for
+  # overlapping_sessions or daily_max_exceeded: those reach the proposals queue instead.
+  - id: session-never-ended
+    kind: assert
+    ticket_type: SESSION_REJECTED
+    state: record_never_ended
+    action: close_session
+    auto_execute: true
+    route_to_human: false
+    confidence: HIGH
+    needs: [new_status, last_activity]
+    reply: |
+      Hi there,
+
+      Your ${resource} session ${record_id} was rejected because it never had an end time. The last
+      activity on it was at ${last_activity}, so I set the end time there. It now shows as ${new_status}.
+
+      If those hours look wrong, reply here and we will take another look.
+
+  - id: session-outside-approval
+    kind: assert
+    ticket_type: SESSION_REJECTED
+    state: outside_approval_dates
+    route_to_human: false
+    confidence: HIGH
+    cc: [manager]
+    reply: |
+      Hi there,
+
+      Your ${resource} session ${record_id} on ${session_date} was rejected because it falls outside
+      approval ${approval_id}, which covers ${approval_window}. Sessions outside the approved dates
+      cannot be accepted.
+
+      If you still need access for that day, your manager can ask for the approval to be extended, so
+      I have copied ${manager} in.
+
+  - id: session-weekly-cap
+    kind: assert
+    ticket_type: SESSION_REJECTED
+    state: weekly_cap_exceeded
+    route_to_human: false
+    confidence: HIGH
+    cc: [manager]
+    reply: |
+      Hi there,
+
+      Your ${resource} session ${record_id} was rejected because the week starting ${week_start} adds up
+      to ${hours_logged} hours, which is over your allowance of ${weekly_allowance}.
+
+      If you need more hours, your manager can ask for the allowance to be raised, so I have copied
+      ${manager} in.
+
+  - id: session-wrong-week-start
+    kind: assert
+    ticket_type: SESSION_REJECTED
+    state: wrong_week_start
+    route_to_human: true
+    confidence: HIGH
+    cc: [access-team]
+    reply: |
+      Hi there,
+
+      Your approval counts weeks from ${week_start_day}, but the activity log counts them from Monday.
+      That makes the week around ${session_date} look like ${hours_logged} hours against your allowance
+      of ${weekly_allowance}. This is a mismatch in how the log counts, not an overrun on your side, so I
+      have passed it to the access team to correct. They will reply on this ticket.
+
+  - id: session-resource-not-approved
+    kind: assert
+    ticket_type: SESSION_REJECTED
+    state: resource_not_approved
+    route_to_human: true
+    confidence: HIGH
+    cc: [manager]
+    reply: |
+      Hi there,
+
+      Your session ${record_id} was on ${resource}, which is not on approval ${approval_id}. That approval
+      covers ${approved_resources}. Your manager can ask for ${resource} to be added, so I have copied
+      ${manager} in and a person on the access team will confirm.
 
   # ---- catch-all: may ask, never assert -------------------------------------------------------
   - id: catch-all

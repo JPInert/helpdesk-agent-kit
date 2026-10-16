@@ -39,12 +39,30 @@ class Settings:
     portal_user: str = field(default_factory=lambda: os.environ.get("PORTAL_USER", "demo"))
     portal_password: str = field(default_factory=lambda: os.environ.get("PORTAL_PASSWORD", "demo-password"))
 
+    # Extra back-office systems. Empty URL = the adapter is not registered for this run.
+    approvals_url: str = field(default_factory=lambda: os.environ.get("APPROVALS_URL", ""))
+    approvals_user: str = field(default_factory=lambda: os.environ.get("APPROVALS_USER", "demo"))
+    approvals_password: str = field(default_factory=lambda: os.environ.get("APPROVALS_PASSWORD", "demo-password"))
+    sessions_url: str = field(default_factory=lambda: os.environ.get("SESSIONS_URL", ""))
+    sessions_user: str = field(default_factory=lambda: os.environ.get("SESSIONS_USER", "demo"))
+    sessions_password: str = field(default_factory=lambda: os.environ.get("SESSIONS_PASSWORD", "demo-password"))
+
     # Requesters at this domain are "internal" and may file on behalf of someone else
     staff_domain: str = field(default_factory=lambda: os.environ.get("STAFF_DOMAIN", "example-corp.test"))
 
     db_path: Path = field(default_factory=lambda: Path(os.environ.get("HDK_DB", ROOT / "data" / "kit.db")))
     kb_path: Path = field(default_factory=lambda: Path(os.environ.get("HDK_KB", ROOT / "kb" / "rules.yaml")))
     fixtures_dir: Path = ROOT / "fixtures"
+
+    # Rules a person approved from the proposals queue are written here and loaded with kb_path
+    approved_rules_path: Path = field(default_factory=lambda: Path(
+        os.environ.get("HDK_APPROVED_RULES", ROOT / "data" / "approved-rules.yaml")))
+
+    # Sign-off appended to every reply by the send stage
+    sign_off: str = "Thanks,\nIT Help Desk"
+
+    # Review dashboard. No default: the API routes stay off until you set a token.
+    dashboard_token: str = field(default_factory=lambda: os.environ.get("DASHBOARD_TOKEN", ""))
 
     # A provisioning job pending longer than this is "stuck"
     stuck_after_minutes: int = 30

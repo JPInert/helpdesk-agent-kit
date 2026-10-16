@@ -6,6 +6,9 @@ how "never state something the run did not check" is enforced in code: e.g. the
 "I've re-run your request and it went through" reply needs `new_status`, which only exists
 after the portal confirmed the fix.
 
+A ticket with several issues gets one reply per issue, built independently and then merged
+into one message (`merge_replies`): one greeting, each issue's body once.
+
 Review verdicts are PASS, FLAG and ERROR. Anything but PASS blocks the send. ERROR (the
 review did not run: timeout, refusal, unparseable answer) is kept separate from FLAG (the
 review ran and objected) because they mean different things to the person reading the log,
@@ -34,6 +37,30 @@ def render(template: str, evidence: dict, needs: list[str] = ()) -> str:
     if missing:
         raise MissingEvidence(f"reply needs evidence the run does not have: {', '.join(missing)}")
     return Template(template).substitute({k: str(v) for k, v in evidence.items()}).strip()
+
+
+GREETING = "Hi there,"
+# Things a reply can only know from the run's facts: record ids, dates, clock times.
+_GROUNDED = re.compile(r"\b[js]\d{2,5}\b|\bap-\d{2,5}\b|\b\d{4}-\d{2}-\d{2}\b|\b\d{1,2}:\d{2}\b")
+
+
+def merge_replies(bodies: list[str]) -> str:
+    """One message from several issue replies: a single greeting, each body once, in order."""
+    parts: list[str] = []
+    for b in bodies:
+        body = b.strip()
+        if body.startswith(GREETING):
+            body = body[len(GREETING):].strip()
+        if body and body not in parts:
+            parts.append(body)
+    return f"{GREETING}\n\n" + "\n\n".join(parts) if parts else ""
+
+
+def ungrounded(text: str, facts: dict) -> list[str]:
+    """Record ids, dates and times in the reply that no collected fact contains. The reply is
+    built from templates plus evidence, so a value that is in no fact did not come from the run."""
+    haystack = " ".join(str(v) for v in facts.values()).lower()
+    return sorted({m for m in _GROUNDED.findall(text.lower()) if m not in haystack})
 
 
 def lint(text: str) -> list[str]:
@@ -89,12 +116,21 @@ def scrub(facts: dict) -> dict:
     return {k: v for k, v in facts.items() if not _RECIPIENT_KEYS.search(k)}
 
 
+def _deterministic_review(reply: str, facts: dict) -> ReviewOutcome | None:
+    problems = lint(reply)
+    if problems:
+        return ReviewOutcome("FLAG", "; ".join(problems), ["other"])
+    loose = ungrounded(reply, scrub(facts))
+    if loose:
+        return ReviewOutcome("FLAG", "not in the collected facts: " + ", ".join(loose), ["unsupported_claim"])
+    return None
+
+
 class LintReviewer:
-    """Offline reviewer: the lint rules only."""
+    """Offline reviewer: house style plus a grounding check on ids, dates and times."""
 
     def review(self, reply: str, facts: dict) -> ReviewOutcome:
-        problems = lint(reply)
-        return ReviewOutcome("FLAG", "; ".join(problems), ["other"]) if problems else ReviewOutcome("PASS")
+        return _deterministic_review(reply, facts) or ReviewOutcome("PASS")
 
 
 class ClaudeReviewer:
@@ -104,9 +140,9 @@ class ClaudeReviewer:
         self.model = model
 
     def review(self, reply: str, facts: dict) -> ReviewOutcome:
-        problems = lint(reply)
-        if problems:
-            return ReviewOutcome("FLAG", "; ".join(problems), ["other"])
+        early = _deterministic_review(reply, facts)
+        if early:
+            return early
         try:
             response = self.client.messages.parse(
                 model=self.model,

@@ -16,8 +16,10 @@ Three kinds of reply, enforced when the file loads:
   ask      asks the user for what is missing. Catch-alls may ask, never assert.
   handoff  says who will pick it up. States nothing about the record.
 
-Auto-execute needs all three: the rule opts in, the proposal is HIGH confidence, and the
-rule has already been confirmed solved at least 5 times.
+Auto-execute needs the rule to opt in, HIGH confidence and at least 5 confirmed solves, on
+top of the hard guards. That decision lives in safety.should_auto_execute, the one choke
+point. A rule a person approved from the proposals queue (origin "proposed") starts at zero
+solves, so a person approves each of its fixes until it has earned the gate.
 """
 
 from __future__ import annotations
@@ -45,6 +47,7 @@ class Rule:
     cc: list[str] = field(default_factory=list)
     reply: str = ""
     needs: list[str] = field(default_factory=list)
+    origin: str = "builtin"          # "proposed" for a rule a person approved from the proposals queue
 
     @property
     def specificity(self) -> int:
@@ -57,6 +60,9 @@ class Rule:
 class KB:
     rules: list[Rule]
     contacts: dict[str, str]
+
+    def rule(self, rule_id: str | None) -> "Rule | None":
+        return next((r for r in self.rules if r.id == rule_id), None)
 
     def match(self, text: str, ticket_type: str, submitter: str, state: str | None) -> Rule | None:
         low = text.lower()
@@ -74,13 +80,13 @@ def _as_list(v) -> list:
     return v if isinstance(v, list) else [v]
 
 
-def should_auto_execute(rule: Rule, confidence: str, times_solved: int) -> bool:
-    return bool(rule.auto_execute and confidence == "HIGH" and times_solved >= AUTO_EXECUTE_MIN_SOLVED)
-
-
-def load(path: Path) -> KB:
+def load(path: Path, approved_path: Path | None = None) -> KB:
+    """Load the shipped rules, plus any rules a person approved from the proposals queue."""
     raw = yaml.safe_load(Path(path).read_text())
     rules = [Rule(**r) for r in raw["rules"]]
+    if approved_path and Path(approved_path).is_file():
+        extra = yaml.safe_load(Path(approved_path).read_text()) or []
+        rules += [Rule(**(r | {"origin": "proposed"})) for r in extra]
     seen: set[str] = set()
     for r in rules:
         if r.id in seen:

@@ -1,0 +1,33 @@
+{
+  "ticket": {
+    "id": 1012,
+    "subject": "Sessions rejected",
+    "description": "Hi there, two of my elevated access sessions from last week were rejected and I can't tell why. One was on the Build Server on Tuesday that I forgot to close out, the other on the Finance Console on Wednesday.",
+    "requester_id": 3,
+    "status": "open",
+    "created_at": "2026-10-05T10:10:00Z",
+    "via": {
+      "channel": "email"
+    },
+    "tags": [],
+    "priority": "high"
+  },
+  "users": [
+    {
+      "id": 3,
+      "name": "Marcus Bell",
+      "email": "marcus.bell@example-corp.test"
+    }
+  ],
+  "comments": [
+    {
+      "id": 10120,
+      "author_id": 3,
+      "public": true,
+      "body": "Hi there, two of my elevated access sessions from last week were rejected and I can't tell why. One was on the Build Server on Tuesday that I forgot to close out, the other on the Finance Console on Wednesday.",
+      "html_body": "<p>Hi there, two of my elevated access sessions from last week were rejected and I can't tell why. One was on the Build Server on Tuesday that I forgot to close out, the other on the Finance Console on Wednesday.</p>",
+      "plain_body": "Hi there, two of my elevated access sessions from last week were rejected and I can't tell why. One was on the Build Server on Tuesday that I forgot to close out, the other on the Finance Console on Wednesday.",
+      "attachments": []
+    }
+  ]
+}

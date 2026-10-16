@@ -1,8 +1,9 @@
 """SQLite store. One file, WAL mode, every stage reads and writes here.
 
-Two tables are append-only on purpose: `events` (what every stage did, in order) and
-`attempts` (the one-attempt ledger: a write to the portal is tried once per ticket per
-record, never looped).
+Append-only on purpose: `events` (what every stage did, in order), `attempts` (a write to a
+system is tried once per ticket per record, never looped) and `fix_ledger` (a record is
+auto-fixed at most once, ever; a trigger refuses deletes and updates, so the rule lives in
+the database and not in a prompt).
 """
 
 from __future__ import annotations
@@ -86,7 +87,104 @@ CREATE TABLE IF NOT EXISTS rule_stats (
     rule_id TEXT PRIMARY KEY,
     times_solved INTEGER NOT NULL DEFAULT 0
 );
+CREATE TABLE IF NOT EXISTS fix_ledger (
+    system TEXT NOT NULL,
+    record_id TEXT NOT NULL,
+    ticket_id TEXT NOT NULL,
+    action TEXT NOT NULL,
+    ts REAL NOT NULL,
+    outcome TEXT,
+    PRIMARY KEY (system, record_id)
+);
+CREATE TRIGGER IF NOT EXISTS fix_ledger_no_delete BEFORE DELETE ON fix_ledger
+BEGIN SELECT RAISE(ABORT, 'fix_ledger is append-only'); END;
+CREATE TRIGGER IF NOT EXISTS fix_ledger_no_rewrite BEFORE UPDATE OF system, record_id, ticket_id, action, ts
+ON fix_ledger BEGIN SELECT RAISE(ABORT, 'fix_ledger is append-only'); END;
+CREATE TABLE IF NOT EXISTS row_skips (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ticket_id TEXT NOT NULL,
+    unit INTEGER NOT NULL,
+    system TEXT NOT NULL,
+    record_id TEXT NOT NULL,
+    reason TEXT NOT NULL,
+    ts REAL NOT NULL
+);
+CREATE TABLE IF NOT EXISTS unit_results (
+    ticket_id TEXT NOT NULL,
+    unit INTEGER NOT NULL,
+    issue INTEGER NOT NULL DEFAULT 0,
+    ticket_type TEXT,
+    state TEXT,
+    rule_id TEXT,
+    action TEXT,
+    status TEXT,
+    record_id TEXT,
+    route_reasons_json TEXT NOT NULL DEFAULT '[]',
+    evidence_json TEXT NOT NULL DEFAULT '{}',
+    facts_json TEXT NOT NULL DEFAULT '{}',
+    findings_json TEXT NOT NULL DEFAULT '[]',
+    reply TEXT,
+    PRIMARY KEY (ticket_id, unit)
+);
+CREATE TABLE IF NOT EXISTS rule_proposals (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    signature TEXT NOT NULL UNIQUE,
+    draft_yaml TEXT NOT NULL,
+    evidence_json TEXT NOT NULL DEFAULT '{}',
+    tickets_json TEXT NOT NULL DEFAULT '[]',
+    status TEXT NOT NULL DEFAULT 'PENDING',
+    created_at REAL NOT NULL,
+    decided_at REAL,
+    decided_by TEXT
+);
+CREATE TABLE IF NOT EXISTS ticket_approvals (
+    ticket_id TEXT PRIMARY KEY,
+    approved_by TEXT NOT NULL,
+    ts REAL NOT NULL
+);
+CREATE TABLE IF NOT EXISTS waiting (
+    ticket_id TEXT PRIMARY KEY,
+    asked_at REAL NOT NULL,
+    last_nudge_at REAL,
+    reminders INTEGER NOT NULL DEFAULT 0,
+    state TEXT NOT NULL DEFAULT 'WAITING'
+);
+CREATE TABLE IF NOT EXISTS queue_runs (
+    run_id TEXT PRIMARY KEY,
+    created_at REAL NOT NULL
+);
+CREATE TABLE IF NOT EXISTS queue_jobs (
+    run_id TEXT NOT NULL,
+    position INTEGER NOT NULL,
+    ticket_id TEXT NOT NULL,
+    state TEXT NOT NULL DEFAULT 'PENDING',
+    result TEXT,
+    error TEXT,
+    updated_at REAL,
+    PRIMARY KEY (run_id, ticket_id)
+);
+CREATE TABLE IF NOT EXISTS seen_tickets (
+    ticket_id TEXT PRIMARY KEY,
+    first_seen REAL NOT NULL,
+    last_seen REAL NOT NULL,
+    comment_count INTEGER NOT NULL DEFAULT 0,
+    outcome TEXT
+);
 """
+
+# Columns added after v1 shipped. A v1 database gets them on connect.
+_ADDED_COLUMNS = {
+    "proposals": [("reply_edited", "INTEGER NOT NULL DEFAULT 0"), ("sent_at", "REAL"),
+                  ("revisions", "INTEGER NOT NULL DEFAULT 0"), ("issue_count", "INTEGER NOT NULL DEFAULT 1")],
+}
+
+
+def _migrate(conn) -> None:
+    for table, cols in _ADDED_COLUMNS.items():
+        have = {r["name"] for r in conn.execute(f"PRAGMA table_info({table})")}
+        for name, decl in cols:
+            if name not in have:
+                conn.execute(f"ALTER TABLE {table} ADD COLUMN {name} {decl}")
 
 
 def connect(path: Path | str) -> sqlite3.Connection:
@@ -97,6 +195,7 @@ def connect(path: Path | str) -> sqlite3.Connection:
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA busy_timeout=5000")
     conn.executescript(SCHEMA)
+    _migrate(conn)
     return conn
 
 
@@ -191,9 +290,10 @@ def mark_solved(conn, rule_id: str) -> None:
 
 def upsert(conn, table: str, row: dict, key: str) -> None:
     cols = list(row)
+    keys = [k.strip() for k in key.split(",")]          # a composite key is "a, b"
     conn.execute(
         f"INSERT INTO {table} ({', '.join(cols)}) VALUES ({', '.join('?' * len(cols))}) "
-        f"ON CONFLICT({key}) DO UPDATE SET {', '.join(f'{c}=excluded.{c}' for c in cols if c != key)}",
+        f"ON CONFLICT({', '.join(keys)}) DO UPDATE SET {', '.join(f'{c}=excluded.{c}' for c in cols if c not in keys)}",
         [row[c] for c in cols])
 
 
@@ -209,3 +309,39 @@ def write_findings(conn, ticket_id: str, findings: list[dict]) -> None:
         extra = {k: v for k, v in f.items() if k not in ("field", "claimed", "actual")}
         conn.execute("INSERT INTO findings (ticket_id, field, claimed, actual, extra_json) VALUES (?,?,?,?,?)",
                      (ticket_id, f["field"], f.get("claimed"), f.get("actual"), dumps(extra)))
+
+
+# ---- fix ledger: a record is fixed by the agent at most once, enforced by the primary key ----
+
+def claim_fix(conn, system: str, record_id: str, ticket_id: str, action: str) -> bool:
+    """True the first time anyone claims this record; False forever after, for any ticket."""
+    try:
+        conn.execute("INSERT INTO fix_ledger (system, record_id, ticket_id, action, ts) VALUES (?,?,?,?,?)",
+                     (system, record_id, ticket_id, action, time.time()))
+        return True
+    except sqlite3.IntegrityError:
+        return False
+
+
+def record_fix_outcome(conn, system: str, record_id: str, outcome: str) -> None:
+    conn.execute("UPDATE fix_ledger SET outcome=? WHERE system=? AND record_id=?", (outcome, system, record_id))
+
+
+def record_skip(conn, ticket_id: str, unit: int, system: str, record_id: str, reason: str) -> None:
+    conn.execute("INSERT INTO row_skips (ticket_id, unit, system, record_id, reason, ts) VALUES (?,?,?,?,?,?)",
+                 (ticket_id, unit, system, record_id, reason, time.time()))
+
+
+def skips(conn, ticket_id: str) -> list[dict]:
+    return [dict(r) for r in conn.execute("SELECT * FROM row_skips WHERE ticket_id=? ORDER BY id", (ticket_id,))]
+
+
+# ---- per-ticket human approval (set from the dashboard, read by the pipeline) ------------------
+
+def approve_ticket(conn, ticket_id: str, approved_by: str) -> None:
+    conn.execute("INSERT OR REPLACE INTO ticket_approvals (ticket_id, approved_by, ts) VALUES (?,?,?)",
+                 (ticket_id, approved_by, time.time()))
+
+
+def is_ticket_approved(conn, ticket_id: str) -> bool:
+    return conn.execute("SELECT 1 FROM ticket_approvals WHERE ticket_id=?", (ticket_id,)).fetchone() is not None

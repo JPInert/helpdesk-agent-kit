@@ -10,6 +10,9 @@ right and expensive to get wrong:
   for a third party; an external requester is always the affected person.
 * A name that is abbreviated or a single token ("DaWh", "Dana") cannot be looked up
   reliably. That ticket goes to a human; we do not guess.
+* One ticket can hold several issues ("1. my license is stuck 2. my session was rejected").
+  The model lists them; each is analyzed, matched and fixed on its own. Every issue in a
+  ticket is about the same person.
 """
 
 from __future__ import annotations
@@ -28,11 +31,28 @@ class TicketType(str, Enum):
     ACCESS_PENDING = "ACCESS_PENDING"          # asked for a group / share / app and it never arrived
     LICENSE_NOT_ASSIGNED = "LICENSE_NOT_ASSIGNED"
     ACCOUNT_SUSPENDED = "ACCOUNT_SUSPENDED"
+    SESSION_REJECTED = "SESSION_REJECTED"      # a logged elevated-access session was marked invalid
     HARDWARE = "HARDWARE"
     POLICY_QUESTION = "POLICY_QUESTION"        # "do I still have to...?" dressed up as a bug
     BILLING_QUESTION = "BILLING_QUESTION"
     OTHER = "OTHER"
     AMBIGUOUS = "AMBIGUOUS"
+
+
+class Claims(BaseModel):
+    """Things the ticket asserts that a system can confirm or contradict."""
+    approved_until: str | None = Field(None, description="Date (YYYY-MM-DD) the requester says their approval runs to")
+    weekly_hours: float | None = Field(None, description="Weekly hours the requester says they are approved for")
+    hours_used: float | None = Field(None, description="Hours the requester says they used in the week")
+    week_starts: str | None = Field(None, description="Day the requester says the approval's week starts on")
+
+
+class ExtraIssue(BaseModel):
+    """A further, separate problem in the same ticket, about the same person."""
+    ticket_type: TicketType
+    product: str | None = None
+    claims: Claims = Field(default_factory=Claims)
+    summary: str = Field(description="One sentence about this issue only")
 
 
 class ModelAnswer(BaseModel):
@@ -45,12 +65,25 @@ class ModelAnswer(BaseModel):
     addressed_to: str | None = Field(None, description="First name if the ticket opens by greeting a specific "
                                                        "staff member (\"Hi Tom,\"), else null")
     summary: str = Field(description="One sentence, in your own words, of what the user needs")
+    claims: Claims = Field(default_factory=Claims, description="Claims in the FIRST issue only")
+    extra_issues: list[ExtraIssue] = Field(default_factory=list, description="Any further separate problems in "
+                                           "the ticket. Leave empty when the ticket is about one thing.")
 
 
 class Classification(ModelAnswer):
     # Decided by code after the model answers, never by the model:
     submitter_kind: str = "external"
     on_behalf: bool = False
+
+    def issues(self) -> list["Classification"]:
+        """One classification per issue, each carrying the shared person and submitter. The
+        first is the ticket's main issue; a single-issue ticket yields just itself."""
+        first = self.model_copy(update={"extra_issues": []})
+        out = [first]
+        for x in self.extra_issues:
+            out.append(first.model_copy(update={"ticket_type": x.ticket_type, "product": x.product,
+                                                "claims": x.claims, "summary": x.summary}))
+        return out
 
 
 SYSTEM = """You triage tickets for an internal IT help desk. Read the entire thread, not just
@@ -98,32 +131,75 @@ KEYWORDS: list[tuple[TicketType, tuple[str, ...]]] = [
     (TicketType.HARDWARE, ("printer", "monitor", "keyboard", "laptop won't", "docking", "toner")),
     (TicketType.BILLING_QUESTION, ("charged", "invoice", "billed")),
     (TicketType.ACCOUNT_SUSPENDED, ("suspended", "disabled account", "account is locked")),
+    (TicketType.SESSION_REJECTED, ()),             # matched by SESSION_WORDS below, ahead of the licence words
     (TicketType.LICENSE_NOT_ASSIGNED, ("license", "licence", "seat", "activate", "never showed up", "isn't on my")),
     (TicketType.ACCESS_PENDING, ("access", "shared drive", "share", "group", "permission")),
     (TicketType.LOGIN_FAILED, ("can't log in", "cannot log in", "can't sign in", "password", "login")),
 ]
-PRODUCTS = ("Office Suite", "Design Suite", "Finance Shared Drive", "VPN Users")
+PRODUCTS = ("Office Suite", "Design Suite", "Finance Shared Drive", "VPN Users", "Build Server", "Finance Console")
+SESSION_WORDS = re.compile(r"\bsessions?\b.{0,80}\b(?:rejected|invalid|flagged|bounced)\b"
+                           r"|\b(?:rejected|invalid|flagged|bounced)\b.{0,80}\bsessions?\b", re.I | re.S)
+LIST_ITEM = re.compile(r"^\s*(?:\d+[.)]|[-*\u2022])\s+(.+)$", re.M)
+CLAIM_UNTIL = re.compile(r"\b(?:through|until|till|ends?(?: on)?)\s+(\d{4}-\d{2}-\d{2})", re.I)
+CLAIM_WEEKLY = re.compile(r"(\d+(?:\.\d+)?)\s*(?:hours?|hrs?)\s*(?:a|per|/)\s*week", re.I)
+CLAIM_USED = re.compile(r"\b(?:used|logged|worked|did)\s+(?:only\s+)?(?:about|around|roughly)?\s*(\d+(?:\.\d+)?)\s*(?:hours?|hrs?)", re.I)
+CLAIM_WEEK_START = re.compile(r"\bweeks?\s+(?:start|begin|run)s?\s+(?:on\s+)?(mon|tues?|wed|thu|fri|sat|sun)[a-z]*", re.I)
 NAME = re.compile(r"\b([A-Z][a-z]+ [A-Z][a-z]+)\b(?:'s)?\s+(?:can't|cannot|isn't|is not|still|needs|has|never|doesn't)")
 ABBREV = re.compile(r"\b(?:for|user)\s+([A-Z][a-z]?[A-Z][a-z]+)\b")
 GREETING = re.compile(r"^\s*(?:hi|hello|hey)\s+([A-Z][a-z]+)\b")
 
 
+def _type_of(low: str) -> TicketType:
+    for t, words in KEYWORDS:
+        if t is TicketType.SESSION_REJECTED:
+            if SESSION_WORDS.search(low):
+                return t
+        elif any(w in low for w in words):
+            return t
+    return TicketType.AMBIGUOUS
+
+
+_DAY_BY_PREFIX = {d[:3].lower(): d for d in ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")}
+
+
+def extract_claims(text: str) -> Claims:
+    until, weekly = CLAIM_UNTIL.search(text), CLAIM_WEEKLY.search(text)
+    used, start = CLAIM_USED.search(text), CLAIM_WEEK_START.search(text)
+    return Claims(approved_until=until.group(1) if until else None,
+                  weekly_hours=float(weekly.group(1)) if weekly else None,
+                  hours_used=float(used.group(1)) if used else None,
+                  week_starts=_DAY_BY_PREFIX[start.group(1).lower()[:3]] if start else None)
+
+
+def split_issues(text: str) -> list[str]:
+    """A numbered or bulleted list of two or more items is several issues; anything else is one."""
+    items = [m.group(1).strip() for m in LIST_ITEM.finditer(text)]
+    return items if len(items) >= 2 else [text]
+
+
 class KeywordClassifier:
     def classify(self, ticket: dict) -> Classification:
         thread = json.loads(ticket["thread_json"])
-        text = " ".join(m["text"] for m in thread) or ticket["body"]
+        text = "\n".join(m["text"] for m in thread) or ticket["body"]
         screenshot = json.loads(ticket.get("screenshot_json") or "{}")
-        low = (text + " " + " ".join(str(v) for v in screenshot.values() if v)).lower()
-        ttype = next((t for t, words in KEYWORDS if any(w in low for w in words)), TicketType.AMBIGUOUS)
+        extra_text = " ".join(str(v) for v in screenshot.values() if v)
+        segments = split_issues(text)
+        low = (segments[0] + " " + extra_text).lower() if len(segments) > 1 else (text + " " + extra_text).lower()
         name = NAME.search(text) or ABBREV.search(text)
         greet = GREETING.search(ticket["body"])
+        extras = [ExtraIssue(ticket_type=_type_of(seg.lower()),
+                             product=next((p for p in PRODUCTS if p.lower() in seg.lower()), None),
+                             claims=extract_claims(seg), summary=seg[:200])
+                  for seg in segments[1:]]
         return Classification(
-            ticket_type=ttype,
+            ticket_type=_type_of(low),
             affected_name=name.group(1) if name else None,
             affected_identifier=screenshot.get("username"),
             product=next((p for p in PRODUCTS if p.lower() in low), None),
             addressed_to=greet.group(1) if greet and greet.group(1).lower() not in ("there", "team", "all") else None,
-            summary=(ticket["subject"] or text[:80]).strip(),
+            summary=segments[0][:200] if len(segments) > 1 else (ticket["subject"] or text[:80]).strip(),
+            claims=extract_claims(segments[0] if len(segments) > 1 else text),
+            extra_issues=extras,
         )
 
 

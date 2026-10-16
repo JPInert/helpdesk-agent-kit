@@ -1,0 +1,32 @@
+{
+  "ticket": {
+    "id": 1016,
+    "subject": "Kofi's sessions",
+    "description": "Hi there, Kofi Mensah still has two rejected sessions from Thursday and the log will not say why.",
+    "requester_id": 2,
+    "status": "open",
+    "created_at": "2026-10-05T10:18:00Z",
+    "via": {
+      "channel": "email"
+    },
+    "tags": []
+  },
+  "users": [
+    {
+      "id": 2,
+      "name": "Tom Hale",
+      "email": "tom.hale@example-corp.test"
+    }
+  ],
+  "comments": [
+    {
+      "id": 10160,
+      "author_id": 2,
+      "public": true,
+      "body": "Hi there, Kofi Mensah still has two rejected sessions from Thursday and the log will not say why.",
+      "html_body": "<p>Hi there, Kofi Mensah still has two rejected sessions from Thursday and the log will not say why.</p>",
+      "plain_body": "Hi there, Kofi Mensah still has two rejected sessions from Thursday and the log will not say why.",
+      "attachments": []
+    }
+  ]
+}

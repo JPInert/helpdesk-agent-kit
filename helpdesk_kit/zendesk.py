@@ -84,6 +84,7 @@ class FixtureSource:
     def __init__(self, fixtures_dir: Path):
         self.dir = Path(fixtures_dir)
         self.sent: list[dict] = []
+        self._extra: dict[str, list[dict]] = {}      # comments added at run time (simulated replies)
 
     def _load(self, ticket_id: str) -> dict:
         return json.loads((self.dir / "zendesk" / f"{ticket_id}.json").read_text())
@@ -98,7 +99,16 @@ class FixtureSource:
         return {"ticket": data["ticket"], "users": data.get("users", [])}
 
     def get_comments(self, ticket_id: str) -> list[dict]:
-        return self._load(ticket_id).get("comments", [])
+        return self._load(ticket_id).get("comments", []) + self._extra.get(ticket_id, [])
+
+    def simulate_requester_reply(self, ticket_id: str, text: str, at: float) -> None:
+        """Demo and test helper: the requester answers the ticket at time `at` (epoch seconds)."""
+        from datetime import datetime, timezone
+        requester = self._load(ticket_id)["ticket"]["requester_id"]
+        self._extra.setdefault(ticket_id, []).append({
+            "id": 900000 + len(self._extra.get(ticket_id, [])), "author_id": requester, "public": True,
+            "body": text, "plain_body": text, "html_body": f"<p>{text}</p>", "attachments": [],
+            "created_at": datetime.fromtimestamp(at, timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")})
 
     def fetch_attachment(self, url: str) -> bytes:
         if not url.startswith("fixture://"):

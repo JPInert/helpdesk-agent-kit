@@ -13,6 +13,10 @@ It deliberately reproduces three things that make real portals awkward to automa
 * Stale reads. The internal API serves a cached snapshot for a few seconds, so a job you
   just retried still reads as pending. Callers have to re-check until it flips.
 
+This is the provisioning system. Two more mock systems sit next to it, each with its own
+quirks: mock_portal/approvals_app.py (approvals, XHR header, short sessions) and
+mock_portal/sessions_app.py (activity log, login page signs you out).
+
 Run:  python -m mock_portal.app      (http://127.0.0.1:8750, login demo / demo-password)
 """
 
@@ -57,6 +61,10 @@ def seed(now: datetime | None = None) -> dict:
          "username": "dwhitley", "status": "active", "manager": "Ana Ruiz"},
         {"id": "u6", "name": "Sam Okafor", "email": "sam.okafor@contractor-mail.test",
          "username": "sokafor", "status": "active", "manager": "Tom Hale"},
+        {"id": "u7", "name": "Noor Haddad", "email": "noor.haddad@example-corp.test",
+         "username": "nhaddad", "status": "active", "manager": "Ana Ruiz"},
+        {"id": "u8", "name": "Kofi Mensah", "email": "kofi.mensah@example-corp.test",
+         "username": "kmensah", "status": "active", "manager": "Tom Hale"},
     ]
     jobs = [
         {"id": "j101", "user_id": "u1", "kind": "license", "target": "Office Suite",
@@ -79,6 +87,9 @@ def seed(now: datetime | None = None) -> dict:
          "cycle": last_cycle, "invoiced": True},
         {"id": "j107", "user_id": "u4", "kind": "license", "target": "Office Suite",
          "status": "pending", "error": None, "created_at": _iso(now - timedelta(hours=4)),
+         "cycle": this_cycle, "invoiced": False},
+        {"id": "j108", "user_id": "u7", "kind": "license", "target": "Office Suite",
+         "status": "pending", "error": None, "created_at": _iso(now - timedelta(hours=3)),
          "cycle": this_cycle, "invoiced": False},
     ]
     seats = [

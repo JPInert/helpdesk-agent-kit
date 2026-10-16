@@ -1,0 +1,33 @@
+{
+  "ticket": {
+    "id": 1015,
+    "subject": "Friday session rejected",
+    "description": "Hi there, my session from Friday was rejected even though my approval runs through 2026-10-31.",
+    "requester_id": 5,
+    "status": "open",
+    "created_at": "2026-10-05T10:16:00Z",
+    "via": {
+      "channel": "email"
+    },
+    "tags": [],
+    "priority": "urgent"
+  },
+  "users": [
+    {
+      "id": 5,
+      "name": "Sam Okafor",
+      "email": "sam.okafor@contractor-mail.test"
+    }
+  ],
+  "comments": [
+    {
+      "id": 10150,
+      "author_id": 5,
+      "public": true,
+      "body": "Hi there, my session from Friday was rejected even though my approval runs through 2026-10-31.",
+      "html_body": "<p>Hi there, my session from Friday was rejected even though my approval runs through 2026-10-31.</p>",
+      "plain_body": "Hi there, my session from Friday was rejected even though my approval runs through 2026-10-31.",
+      "attachments": []
+    }
+  ]
+}
